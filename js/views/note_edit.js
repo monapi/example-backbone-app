@@ -1,38 +1,46 @@
-(function () {
-  "use strict";
-  APP.Views.NoteEditView = Backbone.View.extend({
-    // functions to fire on events
-    events: {
-      "click button.save": "save"
-    },
 
-    // the constructor
-    initialize: function (options) {
-      this.note  = options.note;
-    },
+"use strict";
+APP.NoteEditView = Backbone.View.extend({
+  // functions to fire on events
+  events: {
+    "click button.save": "save"
+  },
 
-    save: function (event) {
-      // this keeps the form from submitting
-      event.stopPropagation();
-      event.preventDefault();
+  // the template
+  template: _.template($('#formTemplate').html()),
 
-      // update our model with values from the form
-      this.note.set({
-        title: this.$el.find('input[name=title]').val(),
-        author: this.$el.find('input[name=author]').val(),
-        description: this.$el.find('textarea[name=description]').val()
-      });
-      // we would save to the server here with
-      // this.note.save();
+  initialize: function (options) {
+    this.model.bind('invalid', APP.helpers.showErrors, APP.helpers);
+    this.model.bind('invalid', this.invalid, this);
+  },
+
+  invalid: function () {
+    this.$el.find('a.cancel').hide();
+  },
+
+  save: function (event) {
+    event.stopPropagation();
+    event.preventDefault();
+
+    // update our model with values from the form
+    this.model.set({
+      title: this.$el.find('input[name=title]').val(),
+      author: this.$el.find('input[name=author]').val(),
+      description: this.$el.find('textarea[name=description]').val()
+    });
+
+    if (this.model.isValid()) {
+      this.model.save();
       // redirect back to the index
-      window.location.hash = "notes/index";
-    },
-
-    // populate the html to the dom
-    render: function () {
-      this.$el.html(_.template($('#formTemplate').html(), this.note.toJSON()));
-      this.$el.find('h2').text('Edit Note');
-      return this;
+      Backbone.history.navigate('notes/index', {trigger: true});
     }
-  });
-}());
+  },
+
+  // populate the html to the dom
+  render: function () {
+    this.$el.html(
+      this.template(this.model.toJSON())
+    );
+    return this;
+  }
+});

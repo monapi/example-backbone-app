@@ -1,53 +1,46 @@
-(function () {
-  "use strict";
-  APP.Views.NoteNewView = Backbone.View.extend({
-    // functions to fire on events
-    events: {
-      "click button.save": "save"
-    },
+"use strict";
 
-    // the constructor
-    initialize: function (options) {
-      this.note  = options.note;
-      this.notes = options.notes;
-      this.note.bind('invalid', this.showErrors, this);
-    },
+APP.NoteNewView = Backbone.View.extend({
+  // functions to fire on events
+  // here we are blocking the submission of the form, and handling it ourself
+  events: {
+    "click button.save": "save",
+    "keyup input": "validate",
+    "keyup textarea": "validate"
+  },
+  
+  template: _.template($('#formTemplate').html()),
 
-    showErrors: function (note, errors) {
-      this.$el.find('.error').removeClass('error');
-      this.$el.find('.alert').html(_.values(errors).join('<br>')).show();
-      // highlight the fields with errors
-      _.each(_.keys(errors), _.bind(function (key) {
-        this.$el.find('*[name=' + key + ']').parent().addClass('error');
-      }, this));
-    },
+  initialize: function (options) {
+    this.model.bind('invalid', APP.helpers.showErrors, APP.helpers);
+  },
 
-    save: function (event) {
-      event.stopPropagation();
-      event.preventDefault();
+  save: function (event) {
+    event.stopPropagation();
+    event.preventDefault();
 
-      // update our model with values from the form
-      this.note.set({
-        title: this.$el.find('input[name=title]').val(),
-        author: this.$el.find('input[name=author]').val(),
-        description: this.$el.find('textarea[name=description]').val(),
-        // just setting random number for id would set as primary key from server
-        id: Math.floor(Math.random() * 100) + 1
-      });
-      if (this.note.isValid()){
-        // add it to the collection
-        this.notes.add(this.note);
-        // this.note.save();
-        // redirect back to the index
-        window.location.hash = "notes/index";
-      }
-    },
-
-    // populate the html to the dom
-    render: function () {
-      this.$el.html(_.template($('#formTemplate').html(), this.note.toJSON()));
-      this.$el.find('h2').text('Create New Note');
-      return this;
+    // update our model with values from the form
+    this.model.set({
+      title: this.$el.find('input[name=title]').val(),
+      author: this.$el.find('input[name=author]').val(),
+      description: this.$el.find('textarea[name=description]').val()
+    });
+    
+    if (this.model.isValid()) {
+      // save it
+      this.collection.add(this.model);
+      this.model.save();
+      // add it to the collection
+      // redirect back to the index
+      Backbone.history.navigate("notes/index", {trigger: true});
     }
-  });
-}());
+  },
+
+  // populate the html to the dom
+  render: function () {
+    this.$el.html(
+    	this.template(this.model.toJSON())
+    );
+    return this;
+  }
+});
